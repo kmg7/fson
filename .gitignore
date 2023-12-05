@@ -1,0 +1,7 @@
+# ignore tmp
+tmp/
+
+# ignore built files
+build/
+main
+main.exe
