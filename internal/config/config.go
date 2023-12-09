@@ -16,11 +16,17 @@ const debugMode bool = true
 
 var appCfg AppConfig
 var transferCfg TransferConfig
+var authCfg AuthConfig
 
 func Init() {
 	initializeLogger()
 	appCfg = initAppConfig()
 	transferCfg = initTransferConfig()
+	authCfg = initAuthConfig()
+}
+
+func GetAuthConfig() *AuthConfig {
+	return &authCfg
 }
 
 func GetAppCfg() *AppConfig {
