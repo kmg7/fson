@@ -4,14 +4,10 @@ import (
 	"errors"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/kmg7/fson/internal/err"
 )
 
-type AuthError struct {
-	IsInternal bool
-	Code       string
-	Messages   []string
-	Err        error
-}
+type AuthError = err.AppError
 
 const (
 	ErrTokenInvalid     = "invalid-token"
@@ -42,10 +38,10 @@ func alreadyExistsErr(whatEverExist string) *AuthError {
 
 func internalErr(err error) *AuthError {
 	return &AuthError{
-		Code:       ErrInternal,
-		IsInternal: true,
-		Messages:   []string{"Unexpected error happened"},
-		Err:        err,
+		Code:     ErrInternal,
+		Internal: true,
+		Messages: []string{"Unexpected error happened"},
+		Err:      err,
 	}
 }
 func invalidTokenErr() *AuthError {

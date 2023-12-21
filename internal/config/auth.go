@@ -17,18 +17,12 @@ type AuthConfig struct {
 	Secret              string
 	AdminSecret         string
 }
-type Admin struct {
-	Username string
-	Password string
-}
 
 var authCfgPath string
 
-func initAuthConfig() AuthConfig {
-	p, err := authConfigFilePath()
-	if err != nil {
-		logger.Error(err)
-	}
+// Initalizes auth config on first run
+func initAuthConfig() *AuthConfig {
+	p := authConfigFilePath()
 	authCfgPath = p
 	ex, err := fsutils.Exists(authCfgPath)
 	if err != nil {
@@ -50,8 +44,9 @@ func initAuthConfig() AuthConfig {
 	return conf
 }
 
-func readAuthConfig() (AuthConfig, error) {
-	var conf AuthConfig
+// Reads auth config if an error happens returns
+func readAuthConfig() (*AuthConfig, error) {
+	conf := &AuthConfig{}
 	file, err := os.Open(authCfgPath)
 	if err != nil {
 		logger.Error("Cannot open auth config")
@@ -65,7 +60,7 @@ func readAuthConfig() (AuthConfig, error) {
 		return conf, err
 	}
 
-	err = json.Unmarshal(data, &conf)
+	err = json.Unmarshal(data, conf)
 	if err != nil {
 		logger.Error("Cannot parse auth config", err)
 	}
@@ -73,7 +68,7 @@ func readAuthConfig() (AuthConfig, error) {
 	return conf, err
 }
 
-func writeAuthConfig(config AuthConfig) error {
+func writeAuthConfig(config *AuthConfig) error {
 	file, err := os.Create(authCfgPath)
 	if err != nil {
 		logger.Error("Cannot create auth config", err)
@@ -95,24 +90,17 @@ func writeAuthConfig(config AuthConfig) error {
 	return nil
 }
 
-func authConfigFilePath() (string, error) {
-	appCfg, err := appConfigDir()
-	if err != nil {
-		logger.Error("Cannot read app config dir", err.Error())
-		return "", err
-	}
-	return path.Join(appCfg, ".AUTH_CFG"), nil
+func authConfigFilePath() string {
+	appCfg := appConfigDir()
+	return path.Join(appCfg, ".AUTH_CFG")
 }
 
 func AuthProfilesFilePath() string {
-	appCfg, err := appConfigDir()
-	if err != nil {
-		logger.Fatal("Cannot read app config dir", err.Error())
-	}
+	appCfg := appConfigDir()
 	return path.Join(appCfg, ".PROFILES")
 }
 
-func defaultAuthConfig() AuthConfig {
+func defaultAuthConfig() *AuthConfig {
 	secret := "CHANGE_THIS_ASAP" //TODO ref
 	adminSecret := secret
 	if rand, err := uuid.NewRandom(); err == nil {
@@ -122,7 +110,7 @@ func defaultAuthConfig() AuthConfig {
 		adminSecret = rand.String()
 	}
 
-	return AuthConfig{
+	return &AuthConfig{
 		TokensExpiresAfter:  time.Hour,
 		TokenExpireTolerant: time.Second * 30,
 		Secret:              secret,

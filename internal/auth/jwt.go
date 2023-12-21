@@ -7,25 +7,25 @@ import (
 )
 
 type Claims struct {
-	Username string
+	UID string
 	jwt.RegisteredClaims
 }
 
 func Validate(token *string) (*Claims, *AuthError) {
 	claims := &Claims{}
-	_, err := parseAndValidate(claims, *token, keyFunc)
+	_, err := parseAndValidate(claims, token, keyFunc)
 	return claims, err
 }
 
 func ValidateAdmin(token *string) (*Claims, *AuthError) {
 	claims := &Claims{}
-	_, err := parseAndValidate(claims, *token, keyFuncAdmin)
+	_, err := parseAndValidate(claims, token, keyFuncAdmin)
 	return claims, err
 
 }
 
-func parseAndValidate(claims *Claims, token string, keyFunc jwt.Keyfunc) (*jwt.Token, *AuthError) {
-	tkn, err := jwt.ParseWithClaims(token, claims, keyFunc)
+func parseAndValidate(claims *Claims, token *string, keyFunc jwt.Keyfunc) (*jwt.Token, *AuthError) {
+	tkn, err := jwt.ParseWithClaims(*token, claims, keyFunc)
 	if err != nil {
 		return nil, parseLibError(err)
 	}
@@ -41,7 +41,7 @@ func parseAndValidate(claims *Claims, token string, keyFunc jwt.Keyfunc) (*jwt.T
 
 func GetToken(user *User) (*string, *AuthError) {
 	claims := &Claims{
-		Username: user.Name,
+		UID: user.Id,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expTime()),
 		},
@@ -55,7 +55,7 @@ func GetToken(user *User) (*string, *AuthError) {
 
 }
 
-func RenewToken(token string) (*string, *AuthError) {
+func RenewToken(token *string) (*string, *AuthError) {
 	claims := &Claims{}
 	if _, err := parseAndValidate(claims, token, keyFunc); err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func RenewToken(token string) (*string, *AuthError) {
 	return &newTokenStr, nil
 }
 
-func RenewAdminToken(token string) (*string, *AuthError) {
+func RenewAdminToken(token *string) (*string, *AuthError) {
 	claims := &Claims{}
 	if _, err := parseAndValidate(claims, token, keyFuncAdmin); err != nil {
 		return nil, err
@@ -87,7 +87,7 @@ func RenewAdminToken(token string) (*string, *AuthError) {
 
 func GetTokenAdmin(admin *Admin) (*string, *AuthError) {
 	claims := &Claims{
-		Username: admin.Name,
+		UID: admin.Id,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(10 * time.Minute)),
 		},

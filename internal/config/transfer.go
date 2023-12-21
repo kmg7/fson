@@ -14,6 +14,7 @@ type TransferPath struct {
 	Id   string `json:"id"`
 	Path string `json:"path"`
 }
+
 type TransferConfig struct {
 	UpdatedAt time.Time      `json:"updatedAt"`
 	CreatedAt time.Time      `json:"createdAt"`
@@ -23,17 +24,14 @@ type TransferConfig struct {
 var transferCfgPath string
 
 func setTransferConfig(newCfg TransferConfig) error {
-	if err := writeTransferConfig(newCfg); err != nil {
+	if err := writeTransferConfig(&newCfg); err != nil {
 		return err
 	}
 	return nil
 }
 
-func initTransferConfig() TransferConfig {
-	p, err := transferConfigFile()
-	if err != nil {
-		logger.Fatal("Cannot read transfer config file path", err)
-	}
+func initTransferConfig() *TransferConfig {
+	p := transferConfigFile()
 	transferCfgPath = p
 	ex, err := fsutils.Exists(transferCfgPath)
 	if err != nil {
@@ -53,8 +51,9 @@ func initTransferConfig() TransferConfig {
 	}
 	return conf
 }
-func readTransferConfig() (TransferConfig, error) {
-	var conf TransferConfig
+
+func readTransferConfig() (*TransferConfig, error) {
+	conf := &TransferConfig{}
 	file, err := os.Open(transferCfgPath)
 	if err != nil {
 		logger.Error("Cannot open transfer config", err)
@@ -68,7 +67,7 @@ func readTransferConfig() (TransferConfig, error) {
 		return conf, err
 	}
 
-	err = json.Unmarshal(data, &conf)
+	err = json.Unmarshal(data, conf)
 	if err != nil {
 		logger.Error("Cannot parse transfer config", err)
 	}
@@ -76,7 +75,7 @@ func readTransferConfig() (TransferConfig, error) {
 	return conf, err
 }
 
-func writeTransferConfig(config TransferConfig) error {
+func writeTransferConfig(config *TransferConfig) error {
 	file, err := os.Create(transferCfgPath)
 	if err != nil {
 		logger.Error("Cannot create transfer config", err)
@@ -98,8 +97,8 @@ func writeTransferConfig(config TransferConfig) error {
 	return nil
 }
 
-func defaultTransferConfig() TransferConfig {
-	return TransferConfig{
+func defaultTransferConfig() *TransferConfig {
+	return &TransferConfig{
 		UpdatedAt: time.Now(),
 		CreatedAt: time.Now(),
 		Transfer:  []TransferPath{},
@@ -107,12 +106,7 @@ func defaultTransferConfig() TransferConfig {
 
 }
 
-func transferConfigFile() (string, error) {
-	appCfg, err := appConfigDir()
-	if err != nil {
-		logger.Error("Cannot read app config dir", err)
-		return "", err
-	}
-	return path.Join(appCfg, ".SERVE_CFG"), nil
-
+func transferConfigFile() string {
+	appCfg := appConfigDir()
+	return path.Join(appCfg, ".SERVE_CFG")
 }

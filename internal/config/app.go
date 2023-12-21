@@ -27,18 +27,15 @@ var appCfgPath string
 // Then attempts to save it.
 // Return an error if something happens during the process.
 func setAppConfig(newCfg AppConfig) error {
-	if err := writeAppConfig(newCfg); err != nil {
+	if err := writeAppConfig(&newCfg); err != nil {
 		return err
 	}
 	return nil
 }
 
 // Initializes applications config file.
-func initAppConfig() AppConfig {
-	p, err := appConfigFile()
-	if err != nil {
-		logger.Error(err)
-	}
+func initAppConfig() *AppConfig {
+	p := appConfigFile()
 	appCfgPath = p
 	ex, err := fsutils.Exists(appCfgPath)
 	if err != nil {
@@ -63,8 +60,8 @@ func initAppConfig() AppConfig {
 // Reads app config file then returns config and an error.
 // If any error occurs on reading logs and returns it, otherwise returns nil
 // and logs an info message
-func readAppConfig() (AppConfig, error) {
-	var conf AppConfig
+func readAppConfig() (*AppConfig, error) {
+	conf := &AppConfig{}
 	file, err := os.Open(appCfgPath)
 	if err != nil {
 		logger.Error("Cannot open config gile")
@@ -78,7 +75,7 @@ func readAppConfig() (AppConfig, error) {
 		return conf, err
 	}
 
-	err = json.Unmarshal(data, &conf)
+	err = json.Unmarshal(data, conf)
 	if err != nil {
 		logger.Error("Cannot parse config file", err)
 	}
@@ -88,7 +85,7 @@ func readAppConfig() (AppConfig, error) {
 
 // Writes app config file then logs and returns if any error occurs.
 // If not returns nil and logs an info message.
-func writeAppConfig(config AppConfig) error {
+func writeAppConfig(config *AppConfig) error {
 	file, err := os.Create(appCfgPath)
 	if err != nil {
 		logger.Error("Cannot create config file", err)
@@ -113,11 +110,8 @@ func writeAppConfig(config AppConfig) error {
 // Returns default config and logs an info message.
 // If any error occurs on reading appLibDir()
 // logs the error and panics.
-func defaultAppConfig() AppConfig {
-	lib, err := appLibDir()
-	if err != nil {
-		logger.Fatal("Cannot read app lib", err.Error())
-	}
+func defaultAppConfig() *AppConfig {
+	lib := appLibDir()
 	updir := path.Join(lib, "uploaded")
 	tmpDir := path.Join(lib, "temp")
 	if err := os.MkdirAll(updir, 0755); err != nil {
@@ -127,7 +121,7 @@ func defaultAppConfig() AppConfig {
 		logger.Fatal("Cannot create uploaded dir", err.Error())
 	}
 	logger.Info("Creating new default app config")
-	return AppConfig{
+	return &AppConfig{
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 		Password:  "admin",
@@ -139,32 +133,34 @@ func defaultAppConfig() AppConfig {
 
 // Returns application library path in the user home directory.
 // If the path doesn't exists creates with 0755.
-// Return the path and an error if any occurs.
-func appLibDir() (string, error) {
+func appLibDir() string {
 	var homeDir string
 	if !debugMode {
 		userHome, err := os.UserHomeDir()
 		if err != nil {
-			return homeDir, err
+			logger.Fatal("Cannot read app lib", err.Error())
+			return homeDir
 		}
 		homeDir = userHome
 	} else {
 		homeDir = path.Join(debugTempDir(), "home")
 	}
 	p := path.Join(homeDir, "fson")
-	err := os.MkdirAll(p, 0755)
-	return p, err
+	if err := os.MkdirAll(p, 0755); err != nil {
+		logger.Fatal("Cannot create go")
+	}
+
+	return p
 }
 
 // Returns application library path in the user home directory.
 // If the path doesn't exists creates with 0755.
-// Return the path and an error if any occurs.
-func appConfigDir() (string, error) {
+func appConfigDir() string {
 	var configDir string
 	if !debugMode {
 		userConfig, err := os.UserConfigDir()
 		if err != nil {
-			return configDir, err
+			logger.Fatal("User config directory not reachable ", err.Error())
 		}
 		configDir = userConfig
 
@@ -172,33 +168,29 @@ func appConfigDir() (string, error) {
 		configDir = path.Join(debugTempDir(), "config")
 	}
 	p := path.Join(configDir, "fson")
-	err := os.MkdirAll(p, 0755)
-	return p, err
+	if err := os.MkdirAll(p, 0755); err != nil {
+		logger.Fatal("Cannot create app config dir ", err.Error())
+	}
+	return p
 }
 
 // Returns directory of the logs creates if it not exists.
-// If any errors occur returns it, otherwise return nil.
-func appLogsDir() (string, error) {
+func appLogsDir() string {
 	var logsDir string
-	appLib, err := appLibDir()
-	if err != nil {
-		return logsDir, err
-	}
+	appLib := appLibDir()
 	logsDir = path.Join(appLib, "logs")
 
-	err = os.MkdirAll(logsDir, 0755)
-	return logsDir, err
+	if err := os.MkdirAll(logsDir, 0755); err != nil {
+		logger.Fatal("Cannot create logs dir ", err.Error())
+	}
+	return logsDir
 }
 
-// Config files name is .APP_CFG.
-// If any error occurs it returns an empty path and the error itself,
-// otherwise returns the path of the file and nil error.
-func appConfigFile() (string, error) {
-	appCfg, err := appConfigDir()
-	if err != nil {
-		return "", err
-	}
-	return path.Join(appCfg, ".APP_CFG"), nil
+// Config file name is .APP_CFG.
+func appConfigFile() string {
+	appCfg := appConfigDir()
+
+	return path.Join(appCfg, ".APP_CFG")
 }
 
 // Returns temp directory of current working process.

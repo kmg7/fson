@@ -27,8 +27,8 @@ func UserSignUp(username, password string) *AuthError {
 	hashedPassword, err := generateHash(password)
 	if err != nil {
 		return &AuthError{
-			IsInternal: true,
-			Code:       ErrInternal,
+			Internal: true,
+			Code:     ErrInternal,
 		}
 	}
 	_, authErr := createUser(username, string(hashedPassword))
@@ -46,8 +46,8 @@ func UserSignIn(username, password string) (*string, *AuthError) {
 	return GetToken(usr)
 }
 
-func UserUpdate(username string, newName *string, newPassword *string) (*string, *AuthError) {
-	_, usr := getUserWithUsername(username)
+func UserUpdate(uid, password, newName, newPassword *string) (*string, *AuthError) {
+	_, usr := getUser(*uid)
 	if usr == nil {
 		return nil, notFoundErr()
 	}
@@ -69,67 +69,39 @@ func SuperUserSignIn(name, password string) (*string, *AuthError) {
 	return GetTokenAdmin(adm)
 }
 
-func SuperUserUpdate(token, password, newPassword, name *string) *AuthError {
-	clms, err := ValidateAdmin(token)
-	if err != nil {
-		return err
-	}
-	_, adm := getAdminWithAdminName(clms.Username)
+func SuperUserUpdate(admin, password, newPassword, name *string) *AuthError {
+	_, adm := getAdmin(*admin)
 	if adm == nil {
 		return notAuthenticated()
 	}
 	if err := comapereHash(adm.Password, *password); err != nil {
 		return notAuthenticated()
 	}
-	_, err = updateAdmin(adm.Id, newPassword, name)
+	_, err := updateAdmin(adm.Id, newPassword, name)
 	return err
 }
 
-func GetAllUsers(token *string) (*[]User, *AuthError) {
-	_, err := ValidateAdmin(token)
-	if err != nil {
-		return nil, err
-	}
+func GetAllUsers() (*[]User, *AuthError) {
 	return profs.Users, nil
 }
 
-func DeleteUser(token *string, id *string) *AuthError {
-	_, err := ValidateAdmin(token)
-	if err != nil {
-		return err
-	}
+func DeleteUser(id *string) *AuthError {
 	return deleteUser(*id)
 }
 
-func GetAllGroups(token *string) (*[]Group, *AuthError) {
-	_, err := ValidateAdmin(token)
-	if err != nil {
-		return nil, err
-	}
+func GetAllGroups() (*[]Group, *AuthError) {
 	return profs.Groups, nil
 }
 
-func CreateGroup(token, name *string, users *[]string) (*Group, *AuthError) {
-	_, err := ValidateAdmin(token)
-	if err != nil {
-		return nil, err
-	}
+func CreateGroup(name *string, users *[]string) (*Group, *AuthError) {
 	return createGroup(name, users)
 }
 
-func UpdateGroup(token, id, name *string, users *[]string) (*Group, *AuthError) {
-	_, err := ValidateAdmin(token)
-	if err != nil {
-		return nil, err
-	}
+func UpdateGroup(id, name *string, users *[]string) (*Group, *AuthError) {
 	return updateGroup(id, name, users)
 }
 
-func DeleteGroup(token, id *string) *AuthError {
-	_, err := ValidateAdmin(token)
-	if err != nil {
-		return err
-	}
+func DeleteGroup(id *string) *AuthError {
 	return deleteGroup(id)
 }
 
