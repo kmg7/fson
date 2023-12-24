@@ -6,18 +6,13 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-	"github.com/kmg7/fson/internal/auth"
 	"github.com/kmg7/fson/internal/logger"
 	mw "github.com/kmg7/fson/internal/server/middleware"
 	"github.com/kmg7/fson/internal/server/utils"
-	"github.com/kmg7/fson/internal/validator"
 )
 
 func StartConfigServer(address string) {
-	auth.Init()
-	if err := validator.Instantiate(); err != nil {
-		logger.Fatal(err.Error())
-	}
+
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)

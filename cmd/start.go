@@ -4,24 +4,39 @@ Copyright © 2023 Mehmet Kemal Gokcay <kmlgkcy.dev@gmail.com>
 package cmd
 
 import (
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/kmg7/fson/internal/auth"
 	"github.com/kmg7/fson/internal/config"
-	server "github.com/kmg7/fson/internal/server/config"
+	"github.com/kmg7/fson/internal/logger"
+	"github.com/kmg7/fson/internal/server"
+	"github.com/kmg7/fson/internal/validator"
 	"github.com/spf13/cobra"
 )
 
 // startCmd represents the start command
 var startCmd = &cobra.Command{
 	Use:   "start",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "start serving servers",
+	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 		config.Init()
-		server.StartConfigServer("localhost:8080")
+		auth.Init()
+		if err := validator.Instantiate(); err != nil {
+			logger.Fatal(err.Error())
+		}
+		go server.ConfigServerStart()
+		go server.TransferServerStart()
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+		func() {
+			<-c
+			logger.Info("Close signal")
+			logger.Info("Closing the application")
+			os.Exit(1)
+		}()
 	},
 }
 
