@@ -10,10 +10,11 @@ import (
 )
 
 const (
-	TokenJwt CtxKey = "JWT_TOKEN"
+	TokenJwt CtxKey = 0
+	UserId   CtxKey = 1
 )
 
-type CtxKey string
+type CtxKey uint
 
 // Parses jwt token to context
 func AuthJwt(next http.Handler) http.Handler {

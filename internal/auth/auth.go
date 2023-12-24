@@ -46,16 +46,13 @@ func UserSignIn(username, password string) (*string, *AuthError) {
 	return GetToken(usr)
 }
 
-func UserUpdate(uid, password, newName, newPassword *string) (*string, *AuthError) {
+func UserUpdate(uid, password, newName, newPassword *string) *AuthError {
 	_, usr := getUser(*uid)
 	if usr == nil {
-		return nil, notFoundErr()
+		return notFoundErr()
 	}
-	usr, err := updateUser(usr.Id, newName, newPassword)
-	if err != nil {
-		return nil, err
-	}
-	return GetToken(usr)
+	_, err := updateUser(usr.Id, newName, newPassword)
+	return err
 }
 
 func SuperUserSignIn(name, password string) (*string, *AuthError) {
