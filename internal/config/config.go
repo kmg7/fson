@@ -22,6 +22,8 @@ type Config struct {
 	logsDir   string
 	fa        *FileAdapter
 	log       logger.AppLogger
+	tcfg      *TransferConfig
+	tcfgPath  string
 }
 
 var si *Config
@@ -67,7 +69,6 @@ func (c *Config) initialize() error {
 	}
 	if err := c.setupLogger(); err != nil {
 		return err
-
 	}
 
 	c.fa = &FileAdapter{
@@ -76,5 +77,10 @@ func (c *Config) initialize() error {
 	}
 
 	c.init = true
+	c.tcfgPath = c.JoinConfigDir("transfer.cfg")
+	// if err := c.readTranfer(); err != nil {
+	// 	return err
+	// }
+
 	return nil
 }
