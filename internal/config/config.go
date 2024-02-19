@@ -22,17 +22,21 @@ type Config struct {
 	logsDir   string
 	fa        *FileAdapter
 	log       logger.AppLogger
+	acfg      *AuthConfig
+	acfgPath  string
 	tcfg      *TransferConfig
 	tcfgPath  string
 }
 
-var si *Config
-var instanciateOnce sync.Once
+var (
+	si              *Config
+	instanciateOnce sync.Once
+)
 
 // A single initialized instance of Config
 func Instance() *Config {
 	instanciateOnce.Do(func() {
-		//Creating config instance
+		// Creating config instance
 		i := &Config{}
 		if debugEnv := os.Getenv("FSON_DEBUG"); debugEnv != "" {
 			i.debugMode = true
@@ -78,6 +82,7 @@ func (c *Config) initialize() error {
 
 	c.init = true
 	c.tcfgPath = c.JoinConfigDir("transfer.cfg")
+	c.acfgPath = c.JoinConfigDir("auth.cfg")
 	// if err := c.readTranfer(); err != nil {
 	// 	return err
 	// }
