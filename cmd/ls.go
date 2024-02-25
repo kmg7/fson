@@ -1,11 +1,9 @@
-/*
-Copyright © 2023 Mehmet Kemal Gokcay <kmlgkcy.dev@gmail.com>
-*/
 package cmd
 
 import (
 	"fmt"
-	"strings"
+	"os"
+	"text/tabwriter"
 
 	netutils "github.com/kmg7/fson/pkg/netutils"
 	"github.com/spf13/cobra"
@@ -15,10 +13,9 @@ import (
 var lsCmd = &cobra.Command{
 	Use:   "ls",
 	Short: "Lists available network devices",
-	Long: `List of available network address.
+	Long: `List of available network addresses.
 Name stands for the network interfaces name
 IP stands for the address.
-You can also see the ip protocol version.
 
 Local adresses such as "lo" or "localhost" are not accessible with
 other devices in your network.
@@ -26,7 +23,6 @@ Make sure choosing correct address for your work.
 
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("ls called")
 		logAvailableIps()
 	},
 }
@@ -40,27 +36,17 @@ func logAvailableIps() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	maxName, maxIp := 4, 7
-	for _, ip := range ips {
-		i := len(ip.Ip.String())
-		n := len(ip.Name)
-		if maxName < n {
-			maxName = n
-		}
-		if maxIp < i {
-			maxIp = i
-		}
-	}
-	maxName += 4
-	maxIp += 4
-	fmt.Printf("%v\n", strings.Repeat("-", maxIp+maxName+9))
-	fmt.Printf("Name%vIP%vis IPv4?\n", strings.Repeat(" ", maxName-3), strings.Repeat(" ", maxIp-2))
-	fmt.Printf("%v\n", strings.Repeat("-", maxIp+maxName+9))
-	for _, ip := range ips {
-		fmt.Printf("-%v%v%v\n",
-			ip.Name+strings.Repeat(" ", maxName-len(ip.Name)),
-			ip.Ip.String()+strings.Repeat(" ", maxIp-len(ip.Ip.String())),
-			ip.IsIPv4)
-	}
+	tw := tabwriter.NewWriter(os.Stdout, 0, 1, 2, ' ', 0)
+	defer tw.Flush()
 
+	fmt.Fprintln(tw)
+	fmt.Fprintf(tw, "Name\tIP Adress\n")
+
+	for _, ip := range ips {
+		fmt.Fprintf(tw, "* %v\t%v\n",
+			ip.Name,
+			ip.Ip.String(),
+		)
+	}
+	fmt.Fprintln(tw)
 }

@@ -1,6 +1,3 @@
-/*
-Copyright © 2023 M. Kemal Gokcay
-*/
 package cmd
 
 import (
@@ -9,11 +6,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "fson",
-	Short: "A brief description of your application",
-	Long:  `A longer description that spans multiple lines and likely contains`,
+	Short: "File Sharing Over Network",
+	Long: `fson is a program for making file transfer over http.
+	More information can be found on https://github.com/kmg7/fson`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -26,5 +23,4 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
