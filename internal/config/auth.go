@@ -113,6 +113,11 @@ func (c *Config) saveAuth(u *AuthConfig) error {
 	return nil
 }
 
+// Returns configs auth config.
+func (c *Config) AuthConfig() *AuthConfig {
+	return c.acfg
+}
+
 // Get Auth Config.
 func (c *Config) GetAuth() *ConfigState {
 	return &ConfigState{

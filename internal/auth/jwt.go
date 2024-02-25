@@ -11,43 +11,44 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func Validate(token *string) (*Claims, *AuthError) {
-	claims := &Claims{}
-	_, err := parseAndValidate(claims, token, keyFunc)
-	return claims, err
+type JWT struct {
+	expireTolerant time.Duration
+	expire         time.Duration
+	secret         []byte
 }
 
-func ValidateAdmin(token *string) (*Claims, *AuthError) {
-	claims := &Claims{}
-	_, err := parseAndValidate(claims, token, keyFuncAdmin)
-	return claims, err
-
+func (j *JWT) keyFunc(token *jwt.Token) (interface{}, error) {
+	return j.secret, nil
 }
 
-func parseAndValidate(claims *Claims, token *string, keyFunc jwt.Keyfunc) (*jwt.Token, *AuthError) {
-	tkn, err := jwt.ParseWithClaims(*token, claims, keyFunc)
+func (j *JWT) expTime() time.Time {
+	return time.Now().Add(j.expire)
+}
+
+func (j *JWT) Validate(token *string) *AuthState {
+	claims := &Claims{}
+	tkn, err := jwt.ParseWithClaims(*token, claims, j.keyFunc)
 	if err != nil {
-		return nil, parseLibError(err)
+		return parseLibErr(err)
 	}
 	if !tkn.Valid {
-		return nil, invalidTokenErr()
+		return invalidTokenErr()
 	}
-	if time.Until(claims.ExpiresAt.Time) < cfg.TokenExpireTolerant {
-		return nil, expiredTokenErr()
+	if time.Until(claims.ExpiresAt.Time) < j.expireTolerant {
+		return expiredTokenErr()
 	}
-	return tkn, nil
-
+	return nil
 }
 
-func GetToken(user *User) (*string, *AuthError) {
+func (j *JWT) GetToken(uid string) (*string, *AuthState) {
 	claims := &Claims{
-		UID: user.Id,
+		UID: uid,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expTime()),
+			ExpiresAt: jwt.NewNumericDate(j.expTime()),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(secret)
+	tokenString, err := token.SignedString(j.secret)
 	if err != nil {
 		return nil, internalErr(err)
 	}
@@ -55,59 +56,17 @@ func GetToken(user *User) (*string, *AuthError) {
 
 }
 
-func RenewToken(token *string) (*string, *AuthError) {
+func (j *JWT) RenewToken(token *string) (*string, *AuthState) {
 	claims := &Claims{}
-	if _, err := parseAndValidate(claims, token, keyFunc); err != nil {
+	if err := j.Validate(token); err != nil {
 		return nil, err
 	}
-	claims.ExpiresAt = jwt.NewNumericDate(expTime())
+	claims.ExpiresAt = jwt.NewNumericDate(j.expTime())
 
 	newToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	newTokenStr, err := newToken.SignedString(secret)
+	newTokenStr, err := newToken.SignedString(j.secret)
 	if err != nil {
 		return nil, internalErr(err)
 	}
 	return &newTokenStr, nil
-}
-
-func RenewAdminToken(token *string) (*string, *AuthError) {
-	claims := &Claims{}
-	if _, err := parseAndValidate(claims, token, keyFuncAdmin); err != nil {
-		return nil, err
-	}
-	claims.ExpiresAt = jwt.NewNumericDate(expTime())
-
-	newToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	newTokenStr, err := newToken.SignedString(secret)
-	if err != nil {
-		return nil, internalErr(err)
-	}
-	return &newTokenStr, nil
-}
-
-func GetTokenAdmin(admin *Admin) (*string, *AuthError) {
-	claims := &Claims{
-		UID: admin.Id,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(10 * time.Minute)),
-		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(admSecret)
-	if err != nil {
-		return nil, internalErr(err)
-	}
-	return &tokenString, nil
-}
-
-func keyFunc(token *jwt.Token) (interface{}, error) {
-	return secret, nil
-}
-
-func keyFuncAdmin(token *jwt.Token) (interface{}, error) {
-	return admSecret, nil
-}
-
-func expTime() time.Time {
-	return time.Now().Add(cfg.TokensExpiresAfter)
 }
