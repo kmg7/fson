@@ -44,6 +44,38 @@ func Instance() *Profiles {
 	return si
 }
 
+func Setup(id, pwd string) error {
+	var err error
+	instanciateOnce.Do(func() {
+		i := &Profiles{}
+		err = i.setup(id, pwd)
+		si = i
+	})
+	return err
+
+}
+func (p *Profiles) setup(id, pwd string) error {
+	if p.init {
+		return fmt.Errorf("profiles init already")
+	}
+	cfg := config.Instance()
+	p.filePath = cfg.JoinConfigDir("profiles.cfg")
+	p.fa = &adapter.File{
+		Parse:   json.Marshal,
+		Unparse: json.Unmarshal,
+	}
+	t := time.Now()
+	np := &Profiles{
+		filePath:  p.filePath,
+		fa:        p.fa,
+		UpdatedAt: t,
+		CreatedAt: t,
+		Admins:    []Admin{{Id: id, Name: "admin", Password: pwd, UpdatedAt: t, CreatedAt: t}},
+	}
+	return p.saveProfiles(np)
+
+}
+
 func (p *Profiles) initialize() error {
 	if p.init {
 		return fmt.Errorf("profiles init already")
@@ -54,7 +86,7 @@ func (p *Profiles) initialize() error {
 		Parse:   json.Marshal,
 		Unparse: json.Unmarshal,
 	}
-	return nil
+	return p.readProfiles()
 }
 
 func (p *Profiles) FilePath() string {

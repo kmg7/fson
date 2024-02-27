@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
-	"os"
 	"sync"
 
+	"github.com/kmg7/fson/env"
 	"github.com/kmg7/fson/internal/adapter"
 	"github.com/kmg7/fson/internal/logger"
 )
@@ -39,15 +39,69 @@ func Instance() *Config {
 	instanciateOnce.Do(func() {
 		// Creating config instance
 		i := &Config{}
-		if debugEnv := os.Getenv("FSON_DEBUG"); debugEnv != "" {
-			i.debugMode = true
-		}
+		i.debugMode = env.GetModeDebug()
+
 		if err := i.initialize(); err != nil {
 			log.Fatal(err.Error())
 		}
 		si = i
 	})
 	return si
+}
+
+func Setup() error {
+	var e error
+	instanciateOnce.Do(func() {
+		// Creating config instance
+		i := &Config{}
+		i.debugMode = env.GetModeDebug()
+
+		e = i.setup()
+		si = i
+	})
+	return e
+}
+
+func (c *Config) setup() error {
+	if c.init {
+		return errors.New("cannot setup while config already init")
+	}
+	if c.debugMode {
+		if err := c.setDebugDir(); err != nil {
+			return err
+		}
+	}
+
+	if err := c.setAppConfigDir(); err != nil {
+		return err
+	}
+	if err := c.setAppLibDir(); err != nil {
+		return err
+	}
+	if err := c.setAppLogsDir(); err != nil {
+		return err
+	}
+	if err := c.setupLogger(); err != nil {
+		return err
+	}
+
+	c.fa = &adapter.File{
+		Parse:   json.Marshal,
+		Unparse: json.Unmarshal,
+	}
+
+	c.init = true
+	c.tcfgPath = c.JoinConfigDir("transfer.cfg")
+	c.acfgPath = c.JoinConfigDir("auth.cfg")
+	if err := c.setupAuth(); err != nil {
+		return err
+	}
+	if err := c.setupTransfer(); err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 // Initializes given config if its not init already.
@@ -84,9 +138,12 @@ func (c *Config) initialize() error {
 	c.init = true
 	c.tcfgPath = c.JoinConfigDir("transfer.cfg")
 	c.acfgPath = c.JoinConfigDir("auth.cfg")
-	// if err := c.readTranfer(); err != nil {
-	// 	return err
-	// }
+	if err := c.readAuth(); err != nil {
+		return err
+	}
+	if err := c.readTranfer(); err != nil {
+		return err
+	}
 
 	return nil
 }
