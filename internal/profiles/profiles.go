@@ -1,18 +1,20 @@
 package profiles
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
 	"time"
 
+	"github.com/kmg7/fson/internal/adapter"
 	"github.com/kmg7/fson/internal/config"
 )
 
 type Profiles struct {
 	init      bool
 	filePath  string
-	fa        config.FileAdapter
+	fa        adapter.FileAdapter
 	UpdatedAt time.Time `json:"uat"`
 	CreatedAt time.Time `json:"cat"`
 	Users     []User    `json:"users"`
@@ -48,6 +50,10 @@ func (p *Profiles) initialize() error {
 	}
 	cfg := config.Instance()
 	p.filePath = cfg.JoinConfigDir("profiles.cfg")
+	p.fa = &adapter.File{
+		Parse:   json.Marshal,
+		Unparse: json.Unmarshal,
+	}
 	return nil
 }
 
@@ -93,7 +99,9 @@ func (p *Profiles) saveProfiles(newP *Profiles) error {
 
 func (p *Profiles) readProfiles() error {
 	read := &Profiles{
+		init:     p.init,
 		filePath: p.filePath,
+		fa:       p.fa,
 	}
 	if err := p.fa.ReadAndParse(read); err != nil {
 		return fmt.Errorf("reading profiles failed err: %w", err)

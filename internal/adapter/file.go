@@ -1,24 +1,17 @@
-package config
+package adapter
 
 import (
 	"os"
 )
 
-type AdapterFile interface {
-	FilePath() string
-}
-
-type Parser = func(v any) ([]byte, error)
-type Unparser = func(data []byte, v any) error
-
-type FileAdapter struct {
+type File struct {
 	Parse   Parser   //ex json.Marshall
 	Unparse Unparser //ex json.Unmarshall
 }
 
 // It utilizes os.Create and file.Write methods. Any occuring error
 // will be returned directly. Same goes for Parser errors.
-func (fa *FileAdapter) ParseAndSave(f AdapterFile) error {
+func (fa *File) ParseAndSave(f AdapterFile) error {
 	// create file
 	file, err := os.Create(f.FilePath())
 	if err != nil {
@@ -42,7 +35,7 @@ func (fa *FileAdapter) ParseAndSave(f AdapterFile) error {
 
 // It utilizes os.ReadFile method. Any error occurs
 // will be returned untouched.
-func (fa *FileAdapter) ReadAndParse(f AdapterFile) error {
+func (fa *File) ReadAndParse(f AdapterFile) error {
 	// read the file
 	data, err := os.ReadFile(f.FilePath())
 	if err != nil {

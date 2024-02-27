@@ -1,4 +1,4 @@
-package config_test
+package adapter_test
 
 import (
 	"encoding/json"
@@ -6,7 +6,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/kmg7/fson/internal/config"
+	"github.com/kmg7/fson/internal/adapter"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,7 +35,7 @@ func TestParseAndSave(t *testing.T) {
 	}()
 
 	t.Run("JSON", func(t *testing.T) {
-		fa := config.FileAdapter{
+		fa := adapter.File{
 			Parse:   json.Marshal,
 			Unparse: json.Unmarshal,
 		}
@@ -73,7 +73,7 @@ func TestReadAndParse(t *testing.T) {
 	}()
 
 	t.Run("NotExistingFile", func(t *testing.T) {
-		fa := config.FileAdapter{
+		fa := adapter.File{
 			Parse:   json.Marshal,
 			Unparse: json.Unmarshal,
 		}
@@ -87,7 +87,7 @@ func TestReadAndParse(t *testing.T) {
 	})
 
 	t.Run("JSON", func(t *testing.T) {
-		fa := config.FileAdapter{
+		fa := adapter.File{
 			Parse:   json.Marshal,
 			Unparse: json.Unmarshal,
 		}

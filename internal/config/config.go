@@ -7,6 +7,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/kmg7/fson/internal/adapter"
 	"github.com/kmg7/fson/internal/logger"
 )
 
@@ -20,7 +21,7 @@ type Config struct {
 	configDir string
 	libDir    string
 	logsDir   string
-	fa        *FileAdapter
+	fa        adapter.FileAdapter
 	log       logger.AppLogger
 	acfg      *AuthConfig
 	acfgPath  string
@@ -75,7 +76,7 @@ func (c *Config) initialize() error {
 		return err
 	}
 
-	c.fa = &FileAdapter{
+	c.fa = &adapter.File{
 		Parse:   json.Marshal,
 		Unparse: json.Unmarshal,
 	}
