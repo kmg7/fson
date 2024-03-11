@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"path"
 	"sync"
 	"time"
 
@@ -12,25 +14,20 @@ import (
 )
 
 type Profiles struct {
-	init      bool
-	filePath  string
-	fa        adapter.FileAdapter
-	UpdatedAt time.Time `json:"uat"`
-	CreatedAt time.Time `json:"cat"`
-	Users     []User    `json:"users"`
-	Groups    []Group   `json:"groups"`
-	Admins    []Admin   `json:"admins"`
-}
-
-type ProfilesUpdate struct {
-	Users  *[]User  `json:"users"`
-	Groups *[]Group `json:"groups"`
-	Admins *[]Admin `json:"admins"`
+	init     bool
+	filePath string
+	fa       adapter.FileAdapter
+	users    *UserProfiles
+	admins   *AdminProfiles
+	groups   *GroupProfiles
 }
 
 var (
 	si              *Profiles
 	instanciateOnce sync.Once
+	groupMutex      sync.Mutex
+	adminMutex      sync.Mutex
+	userMutex       sync.Mutex
 )
 
 func Instance() *Profiles {
@@ -54,25 +51,55 @@ func Setup(id, pwd string) error {
 	return err
 
 }
+
 func (p *Profiles) setup(id, pwd string) error {
 	if p.init {
 		return fmt.Errorf("profiles init already")
 	}
 	cfg := config.Instance()
-	p.filePath = cfg.JoinConfigDir("profiles.cfg")
+	p.filePath = cfg.JoinConfigDir("profiles")
 	p.fa = &adapter.File{
 		Parse:   json.Marshal,
 		Unparse: json.Unmarshal,
 	}
 	t := time.Now()
-	np := &Profiles{
-		filePath:  p.filePath,
-		fa:        p.fa,
+	if err := os.MkdirAll(p.filePath, 0700); err != nil {
+		return err
+	}
+
+	p.admins = &AdminProfiles{
+		filePath:  path.Join(p.filePath, "admin.cfg"),
 		UpdatedAt: t,
 		CreatedAt: t,
 		Admins:    []Admin{{Id: id, Name: "admin", Password: pwd, UpdatedAt: t, CreatedAt: t}},
 	}
-	return p.saveProfiles(np)
+
+	p.groups = &GroupProfiles{
+		filePath:  path.Join(p.filePath, "groups.cfg"),
+		UpdatedAt: t,
+		CreatedAt: t,
+	}
+
+	p.users = &UserProfiles{
+		filePath:  path.Join(p.filePath, "users.cfg"),
+		UpdatedAt: t,
+		CreatedAt: t,
+	}
+
+	if err := p.saveAdmins(); err != nil {
+		return err
+	}
+
+	if err := p.saveGroups(); err != nil {
+		return err
+	}
+
+	if err := p.saveUsers(); err != nil {
+		return err
+	}
+
+	p.init = true
+	return nil
 
 }
 
@@ -81,64 +108,39 @@ func (p *Profiles) initialize() error {
 		return fmt.Errorf("profiles init already")
 	}
 	cfg := config.Instance()
-	p.filePath = cfg.JoinConfigDir("profiles.cfg")
+	p.filePath = cfg.JoinConfigDir("profiles")
 	p.fa = &adapter.File{
 		Parse:   json.Marshal,
 		Unparse: json.Unmarshal,
 	}
-	return p.readProfiles()
-}
 
-func (p *Profiles) FilePath() string {
-	return p.filePath
-}
-
-func (old *Profiles) UpdateFrom(update *ProfilesUpdate) *Profiles {
-	if update == nil {
-		return nil
+	// Admin User Group initialization
+	p.admins = &AdminProfiles{
+		filePath: path.Join(p.filePath, "admin.cfg"),
+		mutex:    &adminMutex,
 	}
-	new := *old
-	updated := false
-
-	if update.Users != nil {
-		new.Users = *update.Users
-		updated = true
+	p.groups = &GroupProfiles{
+		filePath: path.Join(p.filePath, "groups.cfg"),
+		mutex:    &groupMutex,
 	}
 
-	if update.Admins != nil {
-		new.Admins = *update.Admins
-		updated = true
+	p.users = &UserProfiles{
+		filePath: path.Join(p.filePath, "users.cfg"),
+		mutex:    &userMutex,
 	}
 
-	if update.Groups != nil {
-		new.Groups = *update.Groups
-		updated = true
+	if err := p.readAdmins(); err != nil {
+		return err
 	}
 
-	if updated {
-		return &new
+	if err := p.readGroups(); err != nil {
+		return err
 	}
-	return old
-}
 
-func (p *Profiles) saveProfiles(newP *Profiles) error {
-	if err := p.fa.ParseAndSave(newP); err != nil {
-		return fmt.Errorf("saving profiles failed err: %w", err)
+	if err := p.readUsers(); err != nil {
+		return err
 	}
-	p = newP
+
+	p.init = true
 	return nil
-}
-
-func (p *Profiles) readProfiles() error {
-	read := &Profiles{
-		init:     p.init,
-		filePath: p.filePath,
-		fa:       p.fa,
-	}
-	if err := p.fa.ReadAndParse(read); err != nil {
-		return fmt.Errorf("reading profiles failed err: %w", err)
-	}
-	p = read
-	return nil
-
 }
