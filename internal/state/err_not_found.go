@@ -20,3 +20,7 @@ func (e *ErrNotFound) Meta() map[string][]string {
 		codes.ErrNotFound: {e.Resource, e.Subject},
 	}
 }
+
+func (e *ErrNotFound) IsInternal() bool {
+	return false
+}

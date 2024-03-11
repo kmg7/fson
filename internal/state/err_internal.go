@@ -16,3 +16,7 @@ func (e *ErrInternal) Meta() map[string][]string {
 		codes.ErrInternal: {e.While, e.Err.Error()},
 	}
 }
+
+func (e *ErrInternal) IsInternal() bool {
+	return true
+}

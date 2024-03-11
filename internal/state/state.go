@@ -22,4 +22,5 @@ func (s *AppState) ToJSON() ([]byte, error) {
 type Error interface {
 	Meta() map[string][]string
 	Error() string
+	IsInternal() bool
 }

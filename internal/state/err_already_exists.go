@@ -20,3 +20,7 @@ func (e *ErrAlreadyExists) Meta() map[string][]string {
 		codes.ErrAlreadyExists: {e.Resource, e.Subject},
 	}
 }
+
+func (e *ErrAlreadyExists) IsInternal() bool {
+	return false
+}
