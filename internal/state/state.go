@@ -1,6 +1,8 @@
 package state
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 // Application state is being used for state transfers.
 // It is used for communication between app modules and
@@ -15,4 +17,9 @@ type AppState struct {
 
 func (s *AppState) ToJSON() ([]byte, error) {
 	return json.Marshal(s)
+}
+
+type Error interface {
+	Meta() map[string][]string
+	Error() string
 }
