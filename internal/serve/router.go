@@ -1,7 +1,6 @@
 package serve
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -37,7 +36,6 @@ func (r *Router) Method(method, pattern string, h http.Handler) {
 	for _, mw := range r.middlewares {
 		h = mw.Next(h)
 	}
-	fmt.Println(method + " " + r.index + pattern)
 	r.mux.Handle(method+" "+r.index+pattern, h)
 }
 
