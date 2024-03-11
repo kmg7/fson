@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"time"
+
+	"github.com/kmg7/fson/internal/state"
 )
 
 type TransferPath struct {
@@ -113,30 +115,25 @@ func (c *Config) saveTransfer(u *TransferConfig) error {
 }
 
 // Get Transfer Config.
-func (c *Config) GetTransfer() *ConfigState {
-	return &ConfigState{
-		Status: StatusSuccess,
-		Data:   c.tcfg,
-	}
+func (c *Config) GetTransfer() *TransferConfig {
+	r := *c.tcfg
+	return &r
 }
 
 // If pointer to update is nil return State with StatusFailUpdate.
-func (c *Config) UpdateTransfer(u *TransferConfigUpdate) *ConfigState {
+func (c *Config) UpdateTransfer(u *TransferConfigUpdate) (*TransferConfig, state.Error) {
+	c.tcfgMutex.Lock()
+	defer c.tcfgMutex.Unlock()
+
 	update := c.tcfg.UpdateFrom(u)
 	if update != nil {
 		if err := c.saveTransfer(update); err != nil {
-			return &ConfigState{
-				Status:      StatusFailInternal,
-				ErrInternal: true,
-				Err:         err,
+			return nil, &state.ErrInternal{
+				Err:   err,
+				While: "updating transfer config",
 			}
 		}
-		return &ConfigState{
-			Status: StatusUpdate,
-			Data:   update,
-		}
 	}
-	return &ConfigState{
-		Status: StatusFailUpdate,
-	}
+	r := *c.tcfg
+	return &r, nil
 }

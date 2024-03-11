@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/kmg7/fson/internal/state"
 )
 
 type AuthConfig struct {
@@ -113,36 +114,27 @@ func (c *Config) saveAuth(u *AuthConfig) error {
 	return nil
 }
 
-// Returns configs auth config.
-func (c *Config) AuthConfig() *AuthConfig {
-	return c.acfg
-}
-
 // Get Auth Config.
-func (c *Config) GetAuth() *ConfigState {
-	return &ConfigState{
-		Status: StatusSuccess,
-		Data:   c.acfg,
-	}
+func (c *Config) GetAuth() *AuthConfig {
+	r := *c.acfg
+	return &r
 }
 
 // If pointer to update is nil return State with StatusFailUpdate.
-func (c *Config) UpdateAuth(u *AuthConfigUpdate) *ConfigState {
+func (c *Config) UpdateAuth(u *AuthConfigUpdate) (*AuthConfig, state.Error) {
+	c.acfgMutex.Lock()
+	defer c.acfgMutex.Unlock()
+
 	update := c.acfg.UpdateFrom(u)
 	if update != nil {
 		if err := c.saveAuth(update); err != nil {
-			return &ConfigState{
-				Status:      StatusFailInternal,
-				ErrInternal: true,
-				Err:         err,
+			return nil, &state.ErrInternal{
+				While: "updating auth config",
+				Err:   err,
 			}
 		}
-		return &ConfigState{
-			Status: StatusUpdate,
-			Data:   update,
-		}
 	}
-	return &ConfigState{
-		Status: StatusFailUpdate,
-	}
+
+	r := *c.acfg
+	return &r, nil
 }

@@ -25,13 +25,19 @@ type Config struct {
 	log       logger.AppLogger
 	acfg      *AuthConfig
 	acfgPath  string
+	acfgMutex sync.Mutex
 	tcfg      *TransferConfig
 	tcfgPath  string
+	tcfgMutex sync.Mutex
 }
 
 var (
 	si              *Config
 	instanciateOnce sync.Once
+)
+
+var (
+	ErrConfigNotInit = errors.New("config not initialized yet")
 )
 
 // A single initialized instance of Config
@@ -144,6 +150,9 @@ func (c *Config) initialize() error {
 	if err := c.readTranfer(); err != nil {
 		return err
 	}
+
+	c.acfgMutex = sync.Mutex{}
+	c.tcfgMutex = sync.Mutex{}
 
 	return nil
 }
